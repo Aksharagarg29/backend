@@ -21,4 +21,20 @@ const uploadToCloudinary = async (localFilePath)=>{
     }
 }
 
-export {uploadToCloudinary};
+const deleteOldImage = async (oldImage) => {
+    try {
+        if(!oldImage) return null;
+        const url = oldImage.avatar || oldImage.coverImage;
+        if (!url) return null 
+            
+        const urlParts = url.split("/");
+        const publicId = urlParts.slice(-2).join("/").split(".")[0]; 
+        await cloudinary.uploader.destroy(publicId);
+
+        
+    } catch (error) {
+        return null
+    }
+}
+
+export {uploadToCloudinary, deleteOldImage};
