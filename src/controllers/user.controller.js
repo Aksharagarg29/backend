@@ -1,10 +1,11 @@
+import mongoose from 'mongoose';
 import {asyncHandler} from '../utils/asyncHandler.js';
 import {APIerror} from "../utils/apiError.js"
 import {User} from "../models/user.model.js"
 import {uploadToCloudinary, deleteOldImage} from "../utils/cloudinary.js"
 import {ApiResponse} from "../utils/apiResponse.js"
-import jwt from JsonWebTokenError
-import { JsonWebTokenError } from 'jsonwebtoken';
+import jwt from "jsonwebtoken";
+
 
 const generateAccessAndRefreshToken = async (userId) => {
     try {
@@ -148,8 +149,8 @@ const loginUser = asyncHandler(async (req, res) => {
 const logOutUser = asyncHandler(async (req, res) => {
     await User.findByIdAndUpdate(req.user._id,
         {
-            $set:{
-                refreshToken: undefined
+            $unset:{
+                refreshToken: 1
             }
         },
         {
@@ -244,7 +245,7 @@ const updateAccoutDetails = asyncHandler(async(req, res) => {
         throw new APIerror(400, "all information is required");
     }
     const user = await User.findByIdAndUpdate(
-        req.user?._id, set,
+        req.user?._id,
         {
             $set: {
                 fullName: fullName,
@@ -402,7 +403,9 @@ const getUserWatchHistory = asyncHandler(async (req, res) => {
         {
             $match: {
                 _id: new mongoose.Types.ObjectId(req.user._id)
-            },
+            }
+        },
+        {
             $lookup: {
                 from: "videos",
                 localField: "watchHistory",
