@@ -85,7 +85,6 @@ const registerUser = asyncHandler(async (req, res) => {
     if(!createdUser){
         throw new APIerror(500, "Something went wrong while registering the user");
     }
-
     console.log("user registered");
 
     return res.status(201).json(
@@ -286,7 +285,7 @@ const updateUserAvatar = asyncHandler(async(req, res) => {
         {new: true}
     ).select("-password")
 
-    await deleteOldImage(oldImage)
+    await deleteOldImage({ file: oldImage })
     
     return res
     .status(200)
@@ -317,7 +316,7 @@ const updateUserCoverImage = asyncHandler(async(req, res) => {
         {new: true}
     ).select("-password")
 
-    await deleteOldImage(oldImage);
+    await deleteOldImage({ file: oldImage });
     
     return res
     .status(200)

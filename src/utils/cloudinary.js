@@ -21,15 +21,17 @@ const uploadToCloudinary = async (localFilePath)=>{
     }
 }
 
-const deleteOldImage = async (oldImage) => {
+const deleteOldImage = async (oldImage, resourceType = "image") => {
     try {
         if(!oldImage) return null;
-        const url = oldImage.avatar || oldImage.coverImage;
+        const url = oldImage.file;
         if (!url) return null 
             
         const urlParts = url.split("/");
         const publicId = urlParts.slice(-2).join("/").split(".")[0]; 
-        await cloudinary.uploader.destroy(publicId);
+        await cloudinary.uploader.destroy(publicId,{
+            resource_type: resourceType
+        });
 
         
     } catch (error) {
