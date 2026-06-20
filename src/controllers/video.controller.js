@@ -138,6 +138,10 @@ const publishAVideo = asyncHandler(async (req, res) => {
         isPublished: true
     })
 
+    if(!video){
+        throw new APIerror(400, "Something went wrong while publishing the video")
+    }
+
 
     return res
     .status(200)
@@ -151,7 +155,7 @@ const getVideoById = asyncHandler(async (req, res) => {
     const { videoId } = req.params
 
     if(!videoId?.trim()){
-        throw new APIerror(400, "video not found");
+        throw new APIerror(400, "video id is missing");
     }
 
     const updatedVideo = await Video.findByIdAndUpdate(
@@ -183,7 +187,7 @@ const getVideoById = asyncHandler(async (req, res) => {
 const updateVideo = asyncHandler(async (req, res) => {
     const { videoId } = req.params
     if(!videoId?.trim()){
-        throw new APIerror(400, "video not found")
+        throw new APIerror(400, "video id is missing")
     }
     const {title, description} = req.body
 
@@ -237,7 +241,7 @@ const deleteVideo = asyncHandler(async (req, res) => {
     const { videoId } = req.params
 
     if(!videoId?.trim()){
-        throw new APIerror(400, "video not found")
+        throw new APIerror(400, "video id is missing")
     }
 
     const video = await Video.findById(videoId)
@@ -264,7 +268,7 @@ const deleteVideo = asyncHandler(async (req, res) => {
 const togglePublishStatus = asyncHandler(async (req, res) => {
     const { videoId } = req.params
     if(!videoId){
-        throw new APIerror(400, "video not found")
+        throw new APIerror(400, "video id is missing")
     }
     const video = await Video.findById(videoId)
     if(!video){
