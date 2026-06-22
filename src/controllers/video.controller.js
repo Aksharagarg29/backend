@@ -27,10 +27,10 @@ const getAllVideos = asyncHandler(async (req, res) => {
         pipeline.push(
             {
                 $match: {
-                    $or:{ // filter
-                        title: {$regex: query, $options: 'i'}, // regex = regular expression, i = case insensitive
-                        description: {$regex: query, $options: 'i'}
-                    }
+                    $or:[
+                        {title: {$regex: query, $options: 'i'}}, // regex = regular expression, i = case insensitive
+                        {description: {$regex: query, $options: 'i'}}
+                    ]
                     
                 }
             }
@@ -108,7 +108,7 @@ const publishAVideo = asyncHandler(async (req, res) => {
     const { title, description} = req.body
 
     if(
-        [title, description].some((field)=>{field?.trim() === ""})
+        [title, description].some((field)=>field?.trim() === "")
     ){
         throw new APIerror(400, "Fields should not be empty");
     }
@@ -139,7 +139,7 @@ const publishAVideo = asyncHandler(async (req, res) => {
     })
 
     if(!video){
-        throw new APIerror(400, "Something went wrong while publishing the video")
+        throw new APIerror(404, "Something went wrong while publishing the video")
     }
 
 
@@ -154,8 +154,8 @@ const publishAVideo = asyncHandler(async (req, res) => {
 const getVideoById = asyncHandler(async (req, res) => {
     const { videoId } = req.params
 
-    if(!videoId?.trim()){
-        throw new APIerror(400, "video id is missing");
+    if (!mongoose.isValidObjectId(videoId)) {
+        throw new APIerror(400, "invalid or missing video id");
     }
 
     const updatedVideo = await Video.findByIdAndUpdate(
@@ -167,14 +167,14 @@ const getVideoById = asyncHandler(async (req, res) => {
     )
 
     if(!updatedVideo){
-        throw new APIerror(400, "video not exists");
+        throw new APIerror(404, "video not found");
     }
 
     await User.findByIdAndUpdate(
         req.user?._id,
         {
             $addToSet: { watchHistory: videoId }
-        },
+        }
     )
 
     return res
@@ -186,11 +186,20 @@ const getVideoById = asyncHandler(async (req, res) => {
 
 const updateVideo = asyncHandler(async (req, res) => {
     const { videoId } = req.params
-    if(!videoId?.trim()){
-        throw new APIerror(400, "video id is missing")
+    if (!mongoose.isValidObjectId(videoId)) {
+        throw new APIerror(400, "invalid or missing video id");
     }
-    const {title, description} = req.body
 
+    const video = await Video.findById(videoId)
+    if(!video){
+        throw new APIerror(404, "Video not found")
+    }
+
+    if(video.owner.toString() !== req.user?._id.toString()){
+        throw new APIerror(403, "Not authorized to update this video")
+    }
+
+    const {title, description} = req.body
     if(!title || !description){
         throw new APIerror(400, "all fields are required")
     }
@@ -202,18 +211,8 @@ const updateVideo = asyncHandler(async (req, res) => {
     }
 
     const thumbnail = await uploadToCloudinary(thumbnailLocalFile)
-
     if(!thumbnail){
-        throw new APIerror(400, "something went wrong while uploading updated thumbnail")
-    }
-
-    const video = await Video.findById(videoId)
-    if(!video){
-        throw new APIerror(400, "Video not exists")
-    }
-
-    if(video.owner.toString() !== req.user?._id.toString()){
-        throw new APIerror(400, "Not authorized to update this video")
+        throw new APIerror(404, "something went wrong while uploading updated thumbnail")
     }
 
     const updatedVideo = await Video.findByIdAndUpdate(
@@ -224,7 +223,8 @@ const updateVideo = asyncHandler(async (req, res) => {
                 description: description,
                 thumbnail: thumbnail.url
             }
-        }
+        },
+        {new: true}
     )
 
     await deleteOldImage({ file: video.thumbnail })
@@ -240,17 +240,17 @@ const updateVideo = asyncHandler(async (req, res) => {
 const deleteVideo = asyncHandler(async (req, res) => {
     const { videoId } = req.params
 
-    if(!videoId?.trim()){
-        throw new APIerror(400, "video id is missing")
+    if (!mongoose.isValidObjectId(videoId)) {
+        throw new APIerror(400, "invalid or missing video id");
     }
 
     const video = await Video.findById(videoId)
     if(!video){
-        throw new APIerror(400, "Video not exists")
+        throw new APIerror(404, "Video not found")
     }
 
     if(video.owner.toString() !== req.user?._id.toString()){
-        throw new APIerror(400, "Not authorized to delete this video")
+        throw new APIerror(403, "Not authorized to delete this video")
     }
     
     await Video.findByIdAndDelete(videoId)
@@ -267,15 +267,17 @@ const deleteVideo = asyncHandler(async (req, res) => {
 
 const togglePublishStatus = asyncHandler(async (req, res) => {
     const { videoId } = req.params
-    if(!videoId){
-        throw new APIerror(400, "video id is missing")
+    if (!mongoose.isValidObjectId(videoId)) {
+        throw new APIerror(400, "invalid or missing video id");
     }
+
     const video = await Video.findById(videoId)
     if(!video){
-        throw new APIerror(400, "video not exists")
+        throw new APIerror(404, "Video not found")
     }
+
     if(video.owner.toString() !== req.user?._id.toString()){
-        throw new APIerror(400, "Not authorized to toggle publish status")
+        throw new APIerror(403, "Not authorized to toggle publish status")
     }
 
     const updatedVideo = await Video.findByIdAndUpdate(

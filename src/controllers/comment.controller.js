@@ -1,4 +1,5 @@
 import mongoose from "mongoose"
+import {Video} from "../models/video.model.js"
 import {Comment} from "../models/comment.model.js"
 import {APIerror} from "../utils/apiError.js"
 import {ApiResponse} from "../utils/apiResponse.js"
@@ -6,12 +7,16 @@ import {asyncHandler} from "../utils/asyncHandler.js"
 
 const getVideoComments = asyncHandler(async (req, res) => {
     const {videoId} = req.params
+    if (!mongoose.isValidObjectId(videoId)) {
+        throw new APIerror(400, "invalid or missing video id");
+    }
+
     const {page = 1, limit = 10} = req.query
 
     const pageNum = parseInt(page)
     const limitNum = parseInt(limit)
 
-    const commentAggregate = await Comment.aggregate([
+    const commentAggregate = Comment.aggregate([
         {
             $match: {
                 video: new mongoose.Types.ObjectId(videoId)
@@ -64,8 +69,13 @@ const getVideoComments = asyncHandler(async (req, res) => {
 
 const addComment = asyncHandler(async (req, res) => {
     const {videoId} = req.params
-    if(!videoId){
-        throw new APIerror(400, "video not found")
+    if (!mongoose.isValidObjectId(videoId)) {
+        throw new APIerror(400, "invalid or missing video id");
+    }
+
+    const video = await Video.findById(videoId);
+    if (!video) {
+        throw new APIerror(404, "video not found");
     }
 
     const {content} = req.body
@@ -78,7 +88,7 @@ const addComment = asyncHandler(async (req, res) => {
         owner: req.user?._id
     })
     if(!comment){
-        throw new APIerror(400, "Something went wrong while publishing the comment")
+        throw new APIerror(404, "Something went wrong while publishing the comment")
     }
 
     return res
@@ -91,8 +101,8 @@ const addComment = asyncHandler(async (req, res) => {
 
 const updateComment = asyncHandler(async (req, res) => {
     const {commentId} = req.params
-    if(!commentId){
-        throw new APIerror(400, "comment id is missing")
+    if (!mongoose.isValidObjectId(commentId)) {
+        throw new APIerror(400, "invalid or missing comment id");
     }
     
     const {comment} = req.body
@@ -103,11 +113,11 @@ const updateComment = asyncHandler(async (req, res) => {
     const storedComment = await Comment.findById(commentId)
 
     if(!storedComment){
-        throw new APIerror(400, "comment not exists")
+        throw new APIerror(404, "comment not found")
     }
 
     if(storedComment.owner.toString() !== req.user?._id.toString()){
-        throw new APIerror(400, "not authorized to update this comment")
+        throw new APIerror(403, "not authorized to update this comment")
     }
     const updatedComment = await Comment.findByIdAndUpdate(
         commentId, 
@@ -128,18 +138,17 @@ const updateComment = asyncHandler(async (req, res) => {
 
 const deleteComment = asyncHandler(async (req, res) => {
     const {commentId} = req.params
-    if(!commentId){
-        throw new APIerror(400, "comment id is missing")
+    if (!mongoose.isValidObjectId(commentId)) {
+        throw new APIerror(400, "invalid or missing comment id");
     }
 
     const storedComment = await Comment.findById(commentId)
-
     if(!storedComment){
-        throw new APIerror(400, "comment not exists")
+        throw new APIerror(404, "comment not found")
     }
 
     if(storedComment.owner.toString() !== req.user?._id.toString()){
-        throw new APIerror(400, "not authorized to delete this comment")
+        throw new APIerror(403, "not authorized to delete this comment")
     }
     await Comment.findByIdAndDelete(
         commentId

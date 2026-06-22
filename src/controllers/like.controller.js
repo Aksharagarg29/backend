@@ -13,10 +13,12 @@ const toggleVideoLike = asyncHandler(async (req, res) => {
         throw new APIerror(400, "video id is missing")
     }
 
-    const video = await Video.findById(videoId)
-
-    if(!video){
-        throw new APIerror(400, "video not exists")
+    if(!mongoose.isValidObjectId(videoId)){
+        throw new APIerror(400, "invalid video id")
+    }
+    const video = await Video.findById(videoId);
+    if (!video) {
+        throw new APIerror(404, "video not found");   
     }
 
     const likedBy = req.user?._id;
@@ -34,7 +36,7 @@ const toggleVideoLike = asyncHandler(async (req, res) => {
         })
 
         if(!likedVideo){
-            throw new APIerror(400, "Something went wrong while liking the video")
+            throw new APIerror(404, "Something went wrong while liking the video")
         }
     }else{
         await Like.findOneAndDelete({
@@ -55,10 +57,12 @@ const toggleCommentLike = asyncHandler(async (req, res) => {
         throw new APIerror(400, "comment id is missing")
     }
 
-    const comment = await Comment.findById(commentId)
-
-    if(!comment){
-        throw new APIerror(400, "comment not exists")
+    if(!mongoose.isValidObjectId(commentId)){
+        throw new APIerror(400, "invalid comment id")
+    }
+    const comment = await Comment.findById(commentId);
+    if (!comment) {
+        throw new APIerror(404, "comment not found");   
     }
 
     const likedBy = req.user?._id;
@@ -75,7 +79,7 @@ const toggleCommentLike = asyncHandler(async (req, res) => {
             comment: commentId
         })
         if(!likedComment){
-            throw new APIerror(400, "Something went wrong while liking the comment")
+            throw new APIerror(404, "Something went wrong while liking the comment")
         }
     }else{
         await Like.findOneAndDelete({
@@ -97,10 +101,12 @@ const toggleTweetLike = asyncHandler(async (req, res) => {
         throw new APIerror(400, "tweet id is missing")
     }
 
-    const tweet = await Tweet.findById(tweetId)
-
-    if(!tweet){
-        throw new APIerror(400, "tweet not exists")
+    if(!mongoose.isValidObjectId(tweetId)){
+        throw new APIerror(400, "invalid tweet id")
+    }
+    const tweet = await Tweet.findById(tweetId);
+    if (!tweet) {
+        throw new APIerror(404, "tweet not found");   
     }
 
     const likedBy = req.user?._id;
@@ -117,7 +123,7 @@ const toggleTweetLike = asyncHandler(async (req, res) => {
             tweet: tweetId
         })
         if(!likedTweet){
-            throw new APIerror(400, "Something went wrong while liking the tweet")
+            throw new APIerror(404, "Something went wrong while liking the tweet")
         }
     }else{
         await Like.findOneAndDelete({
@@ -185,7 +191,7 @@ const getLikedVideos = asyncHandler(async (req, res) => {
     ])
 
     if(!likedVideos.length){
-        return res.status(200),json(new ApiResponse(200, [], "no videos liked yet"))
+        return res.status(200).json(new ApiResponse(200, [], "no videos liked yet"))
     }
 
     return res
@@ -201,3 +207,4 @@ export {
     toggleVideoLike,
     getLikedVideos
 }
+

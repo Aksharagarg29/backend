@@ -8,17 +8,140 @@ import {asyncHandler} from "../utils/asyncHandler.js"
 
 const toggleSubscription = asyncHandler(async (req, res) => {
     const {channelId} = req.params
-    // TODO: toggle subscription
+    if(!mongoose.isValidObjectId(channelId)){
+        throw new APIerror(400, "invalid channel id")
+    }
+
+    const channel = await User.findById(channelId);
+    if (!channel) {
+        throw new APIerror(404, "channel not found");
+    }
+
+    if(channelId === req.user?._id.toString()){
+        throw new APIerror(400, "Your can not subscribe your own channel")
+    }
+    
+    const subscribedBefore = await Subscription.findOne({
+        subscriber: req.user?._id,
+        channel: channelId
+    })
+    let result;
+    if(!subscribedBefore){
+        result = await Subscription.create({
+            subscriber: req.user?._id,
+            channel: channelId
+        })
+    }else{
+        await Subscription.findOneAndDelete({
+            subscriber: req.user?._id,
+            channel: channelId
+        })
+        result = null;
+    }
+
+    return res
+    .status(200)
+    .json(
+        new ApiResponse(200, result, "toggled subscription successfully")
+    )
 })
 
-// controller to return subscriber list of a channel
+
 const getUserChannelSubscribers = asyncHandler(async (req, res) => {
     const {channelId} = req.params
+    if(!mongoose.isValidObjectId(channelId)){
+        throw new APIerror(400, "invalid channel id")
+    }
+    
+    const subscribers = await Subscription.aggregate([
+        {
+            $match: {
+                channel: new mongoose.Types.ObjectId(channelId)
+            }
+        },
+        {
+            $lookup:{
+                from: "users",
+                localField: "subscriber",
+                foreignField: "_id",
+                as: "subscriber",
+                pipeline: [
+                    {
+                        $project: {
+                            userName: 1,
+                            fullName: 1,
+                            avatar: 1
+                        }
+                    }
+                ]
+            }
+        },
+        {
+            $addFields: {
+                subscriber: {$first: "$subscriber"}
+            }
+        },
+        {
+            $project: {
+                subscriber: 1
+            }
+        }
+    ])
+
+    return res
+    .status(200)
+    .json(
+        new ApiResponse(200, subscribers, "channel subscribers fetched successfully")
+    )
 })
 
-// controller to return channel list to which user has subscribed
+
 const getSubscribedChannels = asyncHandler(async (req, res) => {
     const { subscriberId } = req.params
+    if(!mongoose.isValidObjectId(subscriberId)){
+        throw new APIerror(400, "invalid subscriber id")
+    }
+
+    const channels = await Subscription.aggregate([
+        {
+            $match: {
+                subscriber: new mongoose.Types.ObjectId(subscriberId)
+            }
+        },
+        {
+            $lookup: {
+                from: "users",
+                localField: "channel",
+                foreignField: "_id",
+                as: "channel",
+                pipeline: [
+                    {
+                        $project: {
+                            userName: 1,
+                            fullName: 1,
+                            avatar: 1
+                        }
+                    }
+                ]
+            }
+        },
+        {
+            $addFields: {
+                channel: {$first: "$channel"}
+            }
+        },
+        {
+            $project: {
+                channel: 1
+            }
+        }
+    ])
+
+    return res
+    .status(200)
+    .json(
+        new ApiResponse(200, channels, "user subscribes to these channels, fetched successfully")
+    )
 })
 
 export {
@@ -26,3 +149,4 @@ export {
     getUserChannelSubscribers,
     getSubscribedChannels
 }
+

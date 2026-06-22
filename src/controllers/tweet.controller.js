@@ -16,7 +16,7 @@ const createTweet = asyncHandler(async (req, res) => {
     })
 
     if(!tweet){
-        throw new APIerror(400, "Something went wrong while publishing the tweet")
+        throw new APIerror(404, "Something went wrong while publishing the tweet")
     }
 
     return res
@@ -28,8 +28,8 @@ const createTweet = asyncHandler(async (req, res) => {
 
 const getUserTweets = asyncHandler(async (req, res) => {
     const {userId} = req.params
-    if(!userId){
-        throw new APIerror(400, "user id is missing")
+    if (!mongoose.isValidObjectId(userId)) {
+        throw new APIerror(400, "invalid or missing user id");
     }
     const tweets = await Tweet.aggregate([
         {
@@ -78,8 +78,8 @@ const getUserTweets = asyncHandler(async (req, res) => {
 
 const updateTweet = asyncHandler(async (req, res) => {
     const {tweetId} = req.params
-    if(!tweetId){
-        throw new APIerror(400, "tweet id is missing")
+    if (!mongoose.isValidObjectId(tweetId)) {
+        throw new APIerror(400, "invalid or missing tweet id");
     }
 
     const {content} = req.body
@@ -89,11 +89,11 @@ const updateTweet = asyncHandler(async (req, res) => {
 
     const tweet = await Tweet.findById(tweetId)
     if(!tweet){
-        throw new APIerror(400, "tweet not exists")
+        throw new APIerror(404, "tweet not found")
     }
 
     if(tweet.owner.toString() !== req.user?._id.toString()){
-        throw new APIerror(400, "not authorized to update this tweet")
+        throw new APIerror(403, "not authorized to update this tweet")
     }
 
     const updatedTweet = await Tweet.findByIdAndUpdate(
@@ -115,17 +115,17 @@ const updateTweet = asyncHandler(async (req, res) => {
 
 const deleteTweet = asyncHandler(async (req, res) => {
     const {tweetId} = req.params
-    if(!tweetId){
-        throw new APIerror(400, "tweet id is missing")
+    if (!mongoose.isValidObjectId(tweetId)) {
+        throw new APIerror(400, "invalid or missing tweet id");
     }
 
     const tweet = await Tweet.findById(tweetId)
     if(!tweet){
-        throw new APIerror(400, "tweet not exists")
+        throw new APIerror(404, "tweet not found")
     }
 
     if(tweet.owner.toString() !== req.user?._id.toString()){
-        throw new APIerror(400, "not authorized to delete this tweet")
+        throw new APIerror(403, "not authorized to delete this tweet")
     }
 
     await Tweet.findByIdAndDelete(tweetId)

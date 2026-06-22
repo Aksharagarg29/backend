@@ -37,7 +37,7 @@ const registerUser = asyncHandler(async (req, res) => {
     const {fullName, email, userName, password} = req.body;
 
     if(
-        [fullName, email, userName, password].some((field)=>{field?.trim() === ""})
+        [fullName, email, userName, password].some((field)=>field?.trim() === "")
     ){
         throw new APIerror(400, "Fields should not be empty");
     }
